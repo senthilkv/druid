@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+package org.apache.druid.compressedbigdecimal;
+
+import com.google.common.io.Resources;
+import org.apache.druid.java.util.common.granularity.Granularities;
+import org.apache.druid.java.util.common.guava.Sequence;
+import org.apache.druid.query.Result;
+import org.apache.druid.query.timeseries.TimeseriesResultValue;
+import org.joda.time.DateTime;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.collection.IsMapContaining.hasEntry;
+import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+/**
+ * Unit tests for AccumulatingDecimalAggregator.
+ */
+public class CompressedBigDecimalAggregatorTimeseriesTest
+{
+  private final AggregationTestHelper<Result<TimeseriesResultValue>> helper;
+
+  @Rule
+  public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
+
+  /**
+   * Constructor.
+   */
+  public CompressedBigDecimalAggregatorTimeseriesTest()
+  {
+    CompressedBigDecimalModule module = new CompressedBigDecimalModule();
+    module.configure(null);
+    helper = AggregationTestHelper.createTimeseriesQueryAggregationTestHelper(
+        module.getJacksonModules(), tempFolder);
+  }
+
+  /**
+   * Default setup of UTC timezone.
+   */
+  @BeforeClass
+  public static void setupClass()
+  {
+    System.setProperty("user.timezone", "UTC");
+  }
+
+  /**
+   * ingetion method for all timeseries query.
+   *
+   * @throws IOException IOException
+   * @throws Exception   Exception
+   */
+  @Test
+  public void testIngestAndTimeseriesQuery() throws IOException, Exception
+  {
+    Sequence<Result<TimeseriesResultValue>> seq = helper.createIndexAndRunQueryOnSegment(
+        getClass().getResourceAsStream("bd_test_data.csv"),
+        Resources.asCharSource(getClass().getResource(
+            "bd_test_data_parser.json"),
+            Charset.forName("UTF-8")
+        ).read(),
+        Resources.asCharSource(
+            getClass().getResource("bd_test_aggregators.json"),
+            Charset.forName("UTF-8")
+        ).read(),
+        0,
+        Granularities.NONE,
+        5,
+        Resources.asCharSource(
+            getClass().getResource("bd_test_timeseries_query.json"),
+            Charset.forName("UTF-8")
+        ).read()
+    );
+
+    List<Result<TimeseriesResultValue>> results = seq.toList();
+    assertThat(results, hasSize(1));
+    Result<TimeseriesResultValue> row = results.get(0);
+    Map<String, Object> event = row.getValue().getBaseObject();
+    assertEquals(DateTime.parse("2017-01-01T00:00:00.000Z"), row.getTimestamp());
+    assertThat(event, aMapWithSize(1));
+    assertThat(event, hasEntry("revenue", new BigDecimal("15000000010.000000005")));
+  }
+
+  /**
+   * Test using multiple segments.
+   *
+   * @throws Exception an exception
+   */
+  @Test
+  public void testIngestMultipleSegmentsAndTimeseriesQuery() throws Exception
+  {
+    File segmentDir1 = tempFolder.newFolder();
+    helper.createIndex(
+        getClass().getResourceAsStream("bd_test_zero_data.csv"),
+        Resources.asCharSource(getClass().getResource("bd_test_data_parser.json"),
+            Charset.forName("UTF-8")).read(),
+        Resources.asCharSource(getClass().getResource("bd_test_aggregators.json"),
+            Charset.forName("UTF-8")).read(),
+        segmentDir1,
+        0,
+        Granularities.NONE,
+        5);
+    File segmentDir2 = tempFolder.newFolder();
+    helper.createIndex(
+        getClass().getResourceAsStream("bd_test_data.csv"),
+        Resources.asCharSource(getClass().getResource("bd_test_data_parser.json"),
+            Charset.forName("UTF-8")).read(),
+        Resources.asCharSource(getClass().getResource("bd_test_aggregators.json"),
+            Charset.forName("UTF-8")).read(),
+        segmentDir2,
+        0,
+        Granularities.NONE,
+        5);
+
+    Sequence<Result<TimeseriesResultValue>> seq = helper.runQueryOnSegments(
+        Arrays.asList(segmentDir1, segmentDir2),
+        Resources.asCharSource(
+            getClass().getResource("bd_test_timeseries_query.json"),
+            Charset.forName("UTF-8")
+        ).read());
+
+    List<Result<TimeseriesResultValue>> results = seq.toList();
+    assertThat(results, hasSize(1));
+    Result<TimeseriesResultValue> row = results.get(0);
+    Map<String, Object> event = row.getValue().getBaseObject();
+    assertEquals(DateTime.parse("2017-01-01T00:00:00.000Z"), row.getTimestamp());
+    assertThat(event, aMapWithSize(1));
+    assertThat(event, hasEntry("revenue", new BigDecimal("15000000010.000000005")));
+ // --import org.apache.druid.compressedbigdecimal.CompressedBigDecimalModule;
+ // --import org.apache.druid.compressedbigdecimal.aggregationtest.helper.AggregationTestHelper;
+  }
+}
