@@ -23,14 +23,12 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Supplier;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.MoreExecutors;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.druid.collections.StupidPool;
@@ -42,6 +40,7 @@ import org.apache.druid.data.input.impl.InputRowParser;
 import org.apache.druid.data.input.impl.StringInputRowParser;
 import org.apache.druid.java.util.common.IAE;
 import org.apache.druid.java.util.common.Pair;
+import org.apache.druid.java.util.common.concurrent.Execs;
 import org.apache.druid.java.util.common.granularity.Granularity;
 import org.apache.druid.java.util.common.guava.CloseQuietly;
 import org.apache.druid.java.util.common.guava.Sequence;
@@ -65,11 +64,6 @@ import org.apache.druid.query.groupby.GroupByQueryConfig;
 import org.apache.druid.query.groupby.GroupByQueryRunnerFactory;
 import org.apache.druid.query.groupby.GroupByQueryRunnerTest;
 import org.apache.druid.query.groupby.ResultRow;
-import org.apache.druid.query.scan.ScanQueryConfig;
-import org.apache.druid.query.scan.ScanQueryEngine;
-import org.apache.druid.query.scan.ScanQueryQueryToolChest;
-import org.apache.druid.query.scan.ScanQueryRunnerFactory;
-import org.apache.druid.query.scan.ScanResultValue;
 import org.apache.druid.query.timeseries.TimeseriesQueryEngine;
 import org.apache.druid.query.timeseries.TimeseriesQueryQueryToolChest;
 import org.apache.druid.query.timeseries.TimeseriesQueryRunnerFactory;
@@ -89,6 +83,7 @@ import org.apache.druid.segment.TestHelper;
 import org.apache.druid.segment.incremental.IncrementalIndex;
 import org.apache.druid.segment.incremental.IncrementalIndexSchema;
 import org.apache.druid.segment.writeout.OffHeapMemorySegmentWriteOutMediumFactory;
+import org.apache.druid.testing.InitializedNullHandlingTest;
 import org.apache.druid.timeline.SegmentId;
 import org.junit.rules.TemporaryFolder;
 
@@ -109,7 +104,7 @@ import java.util.List;
  *
  * @param <T> Type of result to generate
  */
-public class AggregationTestHelper<T>
+public class AggregationTestHelper<T> extends InitializedNullHandlingTest
 {
   private final ObjectMapper mapper;
   private final IndexMerger indexMerger;
@@ -177,48 +172,6 @@ public class AggregationTestHelper<T>
   }
 
   /**
-   * Select query aggregation test helper.
-   *
-   * @param jsonModulesToRegister jsonModulesToRegister
-   * @param tempFolder            temporary folder
-   * @return instance of AggregationTestHelper
-   */
-  public static final AggregationTestHelper<Result<ScanResultValue>> createSelectQueryAggregationTestHelper(
-      List<? extends Module> jsonModulesToRegister, TemporaryFolder tempFolder)
-  {
-    ObjectMapper mapper = TestHelper.makeJsonMapper();
-    mapper.setInjectableValues(
-        new InjectableValues.Std().addValue(ScanQueryConfig.class, new ScanQueryConfig(true)));
-
-    ScanQueryMetricsFactory scanQueryMetricsFactory = DefaultScanQueryMetricsFactory.instance();
-    
-    QueryToolChest<Result<ScanResultValue>, ? extends Query<Result<ScanResultValue>>> toolchest =
-        new ScanQueryQueryToolChest(TestHelper.makeJsonMapper(),
-            QueryRunnerTestHelper.noopIntervalChunkingQueryRunnerDecorator(), scanQueryMetricsFactory);
-
-    QueryRunnerFactory<Result<ScanResultValue>, ? extends Query<Result<ScanResultValue>>> factory =
-        new ScanQueryRunnerFactory(
-            new ScanQueryQueryToolChest(TestHelper.makeJsonMapper(),
-                QueryRunnerTestHelper.noopIntervalChunkingQueryRunnerDecorator(),
-                scanQueryMetricsFactory),
-            new ScanQueryEngine(), QueryRunnerTestHelper.NOOP_QUERYWATCHER);
-
-    IndexIO indexIO = new IndexIO(mapper, () -> {
-      return 0;
-    });
-
-    return new AggregationTestHelper<Result<ScanResultValue>>(
-        mapper,
-        new IndexMergerV9(mapper, indexIO, OffHeapMemorySegmentWriteOutMediumFactory.instance()),
-        indexIO,
-        toolchest,
-        factory,
-        tempFolder,
-        jsonModulesToRegister
-    );
-  }
-
-  /**
    * Timeseries query aggregation test helper.
    *
    * @param jsonModulesToRegister jsonModulesToRegister
@@ -231,7 +184,7 @@ public class AggregationTestHelper<T>
     ObjectMapper mapper = TestHelper.makeJsonMapper();
 
     QueryToolChest<Result<TimeseriesResultValue>, ? extends Query<Result<TimeseriesResultValue>>> toolchest =
-        new TimeseriesQueryQueryToolChest(QueryRunnerTestHelper.noopIntervalChunkingQueryRunnerDecorator());
+        new TimeseriesQueryQueryToolChest();
 
     QueryRunnerFactory<Result<TimeseriesResultValue>, ? extends Query<Result<TimeseriesResultValue>>> factory =
         new TimeseriesQueryRunnerFactory((TimeseriesQueryQueryToolChest) toolchest, new TimeseriesQueryEngine(),
@@ -264,8 +217,7 @@ public class AggregationTestHelper<T>
     ObjectMapper mapper = TestHelper.makeJsonMapper();
 
     QueryToolChest<Result<TopNResultValue>, ? extends Query<Result<TopNResultValue>>> toolchest =
-        new TopNQueryQueryToolChest(new TopNQueryConfig(),
-            QueryRunnerTestHelper.noopIntervalChunkingQueryRunnerDecorator());
+        new TopNQueryQueryToolChest(new TopNQueryConfig());
 
     QueryRunnerFactory<Result<TopNResultValue>, ? extends Query<Result<TopNResultValue>>> factory =
         new TopNQueryRunnerFactory(
@@ -530,7 +482,7 @@ public class AggregationTestHelper<T>
   {
     @SuppressWarnings("unchecked") final FinalizeResultsQueryRunner<T> baseRunner =
         new FinalizeResultsQueryRunner<T>(toolChest.postMergeQueryDecoration(toolChest.mergeResults(
-            toolChest.preMergeQueryDecoration(factory.mergeRunners(MoreExecutors.sameThreadExecutor(),
+             toolChest.preMergeQueryDecoration(factory.mergeRunners(Execs.directExecutor(),
                 Lists.transform(segments, segment -> {
                   try {
                     return makeStringSerdeQueryRunner(mapper, (QueryToolChest<T, Query<T>>) toolChest, query, factory.createRunner(segment));

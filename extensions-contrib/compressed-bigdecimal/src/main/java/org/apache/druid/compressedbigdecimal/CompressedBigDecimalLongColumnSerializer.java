@@ -31,6 +31,7 @@ import org.apache.druid.segment.writeout.SegmentWriteOutMedium;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.WritableByteChannel;
+import java.util.Locale;
 
 /**
  * Column Serializer that understands converting CompressedBigDecimal to 4 byte long values for better storage.
@@ -54,13 +55,13 @@ public class CompressedBigDecimalLongColumnSerializer implements GenericColumnSe
         CompressedVSizeColumnarIntsSerializer.create(
             "dummy",
             segmentWriteOutMedium,
-            String.format("%s.scale", filenameBase),
+            String.format(Locale.ROOT, "%s.scale", filenameBase),
             16,
             CompressionStrategy.LZ4),
         V3CompressedVSizeColumnarMultiIntsSerializer.create(
             "dummy",
             segmentWriteOutMedium,
-            String.format("%s.magnitude", filenameBase),
+            String.format(Locale.ROOT, "%s.magnitude", filenameBase),
             Integer.MAX_VALUE,
             CompressionStrategy.LZ4));
   }

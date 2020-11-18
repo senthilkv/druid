@@ -20,7 +20,6 @@
 package org.apache.druid.compressedbigdecimal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
 import org.apache.druid.data.input.MapBasedRow;
 import org.apache.druid.java.util.common.granularity.Granularities;
@@ -30,6 +29,7 @@ import org.apache.druid.query.groupby.GroupByQueryConfig;
 import org.apache.druid.query.groupby.GroupByQueryRunnerTest;
 import org.apache.druid.query.groupby.ResultRow;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,17 +40,18 @@ import org.junit.runners.Parameterized;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-
 
 /**
  * Unit tests for AccumulatingDecimalAggregator.
@@ -85,7 +86,7 @@ public class CompressedBigDecimalAggregatorGroupByTest
   @Parameterized.Parameters(name = "{0}")
   public static Collection<?> constructorFeeder() throws IOException
   {
-    final List<Object[]> constructors = Lists.newArrayList();
+    final List<Object[]> constructors = new ArrayList<>();
     for (GroupByQueryConfig config : GroupByQueryRunnerTest.testConfigs()) {
       constructors.add(new Object[] {config});
     }
@@ -110,19 +111,21 @@ public class CompressedBigDecimalAggregatorGroupByTest
   @Test
   public void testIngestAndGroupByAllQuery() throws IOException, Exception
   {
+
     String groupByQueryJson = Resources.asCharSource(
-        getClass().getResource("bd_test_groupby_query.json"),
-        Charset.forName("UTF-8")
+        this.getClass().getResource("/" + "bd_test_groupby_query.json"),
+        StandardCharsets.UTF_8
     ).read();
+
     Sequence<ResultRow> seq = helper.createIndexAndRunQueryOnSegment(
-        getClass().getResourceAsStream("bd_test_data.csv"),
-        Resources.asCharSource(getClass().getResource(
-            "bd_test_data_parser.json"),
-            Charset.forName("UTF-8")
+        this.getClass().getResourceAsStream("/" + "bd_test_data.csv"),
+        Resources.asCharSource(this.getClass().getResource(
+            "/" + "bd_test_data_parser.json"),
+            StandardCharsets.UTF_8
         ).read(),
         Resources.asCharSource(
-            getClass().getResource("bd_test_aggregators.json"),
-            Charset.forName("UTF-8")
+            this.getClass().getResource("/" + "bd_test_aggregators.json"),
+            StandardCharsets.UTF_8
         ).read(),
         0,
         Granularities.NONE,
@@ -137,10 +140,8 @@ public class CompressedBigDecimalAggregatorGroupByTest
     GroupByQuery groupByQuery = mapper.readValue(groupByQueryJson, GroupByQuery.class);
     MapBasedRow mapBasedRow = row.toMapBasedRow(groupByQuery);
     Map<String, Object> event = mapBasedRow.getEvent();
-    assertEquals(DateTime.parse("2017-01-01T00:00:00.000Z"), mapBasedRow.getTimestamp());
+    assertEquals(new DateTime("2017-01-01T00:00:00Z", DateTimeZone.forTimeZone(TimeZone.getTimeZone("UTC"))), mapBasedRow.getTimestamp());
     assertThat(event, aMapWithSize(1));
     assertThat(event, hasEntry("revenue", new BigDecimal("15000000010.000000005")));
-//import org.apache.druid.compressedbigdecimal.CompressedBigDecimalModule;
-//import org.apache.druid.compressedbigdecimal.aggregationtest.helper.AggregationTestHelper;
   }
 }

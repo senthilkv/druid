@@ -31,7 +31,7 @@
 
     <groupId>org.apache.druid.extensions.contrib</groupId>
     <artifactId>druid-compressed-bigdecimal</artifactId>
-    <name>Compressed big decimal module</name>
+    <name>druid-compressed-bigdecimal</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -60,6 +60,13 @@
         </dependency>
 
         <!-- Tests -->
+        <dependency>
+            <groupId>org.apache.druid</groupId>
+            <artifactId>druid-core</artifactId>
+            <version>${project.parent.version}</version>
+            <classifier>tests</classifier>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.druid</groupId>
             <artifactId>druid-processing</artifactId>

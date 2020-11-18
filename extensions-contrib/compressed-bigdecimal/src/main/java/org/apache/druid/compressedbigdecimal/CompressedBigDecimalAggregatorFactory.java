@@ -39,6 +39,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+
 /**
  * An aggregator factory to generate longSum aggregator object.
  */
@@ -216,7 +217,7 @@ public class CompressedBigDecimalAggregatorFactory
   @Override
   public ValueType getType()
   {
-    return null;
+    return ValueType.COMPLEX;
   }
   
   /* (non-Javadoc)
