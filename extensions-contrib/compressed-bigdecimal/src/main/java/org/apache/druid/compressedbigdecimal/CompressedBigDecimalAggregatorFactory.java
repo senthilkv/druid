@@ -212,8 +212,7 @@ public class CompressedBigDecimalAggregatorFactory
     return Arrays.asList(fieldName);
   }
 
-  /* added to fix the compilation issue - senthilV */
- 
+  /* (non-Javadoc) Get Type */
   @Override
   public ValueType getType()
   {
