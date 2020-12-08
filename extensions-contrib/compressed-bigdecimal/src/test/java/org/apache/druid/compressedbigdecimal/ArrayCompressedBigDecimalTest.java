@@ -343,7 +343,5 @@ public class ArrayCompressedBigDecimalTest
     assertEquals(new BigDecimal(-1).scaleByPowerOfTen(-9), bd.toBigDecimal());
     bd = ArrayCompressedBigDecimal.wrap(new int[] {1410065408, 2}, 9);
     assertEquals(new BigDecimal(10).setScale(9), bd.toBigDecimal());
-//import org.apache.druid.compressedbigdecimal.ArrayCompressedBigDecimal;
-//import org.apache.druid.compressedbigdecimal.CompressedBigDecimal;
   }
 }
