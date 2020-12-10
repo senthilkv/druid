@@ -130,7 +130,7 @@ public abstract class CompressedBigDecimal<T extends CompressedBigDecimal<T>> ex
   }
 
   /**
-   * Get a byte array representing the magnitude of this vale,
+   * Get a byte array representing the magnitude of this value,
    * formatted for use by {@link BigInteger#BigInteger(byte[])}.
    *
    * @return the byte array for use in BigInteger

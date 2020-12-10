@@ -133,7 +133,7 @@ public class ArrayCompressedBigDecimal extends CompressedBigDecimal<ArrayCompres
   }
 
   /* (non-Javadoc)
-   * @see com.yahoo.uad2.druid.compressedbigdecimal.CompressedBigDecimal#getArraySize()
+   * @see org.apache.druid.compressedbigdecimal.CompressedBigDecimal#getArraySize()
    */
   @Override
   public int getArraySize()

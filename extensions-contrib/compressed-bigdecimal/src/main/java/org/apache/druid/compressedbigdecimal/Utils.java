@@ -156,7 +156,7 @@ public class Utils
     }
 
     /* (non-Javadoc)
-     * @see com.yahoo.uad2.druid.compressedbigdecimal.ObjBiIntConsumer#accept(java.lang.Object, int, int)
+     * @see org.apache.druid.compressedbigdecimal.ObjBiIntConsumer#accept(java.lang.Object, int, int)
      */
     @Override
     public void accept(ByteBuffer buf, int idx, int val)

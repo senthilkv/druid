@@ -223,7 +223,6 @@ public class CompressedBigDecimalAggregatorFactory
    * @see org.apache.druid.query.aggregation.AggregatorFactory#getTypeName()
    */
   @Override
-  //public String getTypeName()
   public String getComplexTypeName()
   {
     return CompressedBigDecimalModule.COMPRESSED_BIG_DECIMAL;
@@ -297,7 +296,6 @@ public class CompressedBigDecimalAggregatorFactory
   {
     return "CompressedBigDecimalAggregatorFactory{" +
         "name='" + getName() + '\'' +
-        //", type='" + getTypeName() + '\'' +
         ", type='" + getComplexTypeName() + '\'' +
         ", fieldName='" + getFieldName() + '\'' +
         ", requiredFields='" + requiredFields() + '\'' +
