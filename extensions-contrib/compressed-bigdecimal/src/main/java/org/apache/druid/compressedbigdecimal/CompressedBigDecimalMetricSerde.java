@@ -20,6 +20,7 @@
 package org.apache.druid.compressedbigdecimal;
 
 import org.apache.druid.data.input.InputRow;
+import org.apache.druid.java.util.common.ISE;
 import org.apache.druid.segment.column.ColumnBuilder;
 import org.apache.druid.segment.data.ObjectStrategy;
 import org.apache.druid.segment.serde.ComplexMetricExtractor;
@@ -71,8 +72,7 @@ public class CompressedBigDecimalMetricSerde extends ComplexMetricSerde
         } else if (rawMetric instanceof CompressedBigDecimal<?>) {
           return (CompressedBigDecimal<?>) rawMetric;
         } else {
-          throw new RuntimeException("unknown extraction value type: " +
-              rawMetric.getClass().getSimpleName());
+          throw new ISE("Unknown extraction value type: [%s]", rawMetric.getClass().getSimpleName());
         }
       }
     };

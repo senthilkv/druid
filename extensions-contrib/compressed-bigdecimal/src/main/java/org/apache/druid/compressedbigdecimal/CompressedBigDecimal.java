@@ -234,7 +234,10 @@ public abstract class CompressedBigDecimal<T extends CompressedBigDecimal<T>> ex
 
   /**
    * Internal implementation if signum.
-   *
+   * For the Provided Compressed big decimal value it checks and returns
+   * -1 if Negative
+   * 0 if Zero
+   * 1 if Positive
    * @param <S>     type of object containing the array
    * @param size    the underlying array size
    * @param rhs     object that contains the underlying array

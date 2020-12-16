@@ -18,8 +18,7 @@
   ~ under the License.
   -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>druid-processing</artifactId>
@@ -184,11 +183,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-        </dependency>
-        <dependency>
             <groupId>com.carrotsearch</groupId>
             <artifactId>junit-benchmarks</artifactId>
             <scope>test</scope>
@@ -271,8 +265,7 @@
                         </path>
                     </annotationProcessorPaths>
                     <annotationProcessors>
-                        <annotationProcessor>org.apache.druid.annotations.SubclassesMustBePublicAnnotationProcessor
-                        </annotationProcessor>
+                        <annotationProcessor>org.apache.druid.annotations.SubclassesMustBePublicAnnotationProcessor</annotationProcessor>
                     </annotationProcessors>
                 </configuration>
             </plugin>
@@ -321,9 +314,7 @@
                     <plugin>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                            <argLine>-server -Xms3G -Xmx3G -Djub.consumers=CONSOLE,H2
-                                -Djub.db.file=benchmarks/benchmarks
-                            </argLine>
+                            <argLine>-server -Xms3G -Xmx3G -Djub.consumers=CONSOLE,H2 -Djub.db.file=benchmarks/benchmarks</argLine>
                             <groups>org.apache.druid.collections.test.annotation.Benchmark</groups>
                             <excludedGroups>org.apache.druid.collections.test.annotation.Dummy</excludedGroups>
                         </configuration>

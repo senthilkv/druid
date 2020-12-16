@@ -24,6 +24,7 @@ import com.google.common.io.Resources;
 import org.apache.druid.data.input.MapBasedRow;
 import org.apache.druid.java.util.common.granularity.Granularities;
 import org.apache.druid.java.util.common.guava.Sequence;
+import org.apache.druid.query.aggregation.AggregationTestHelper;
 import org.apache.druid.query.groupby.GroupByQuery;
 import org.apache.druid.query.groupby.GroupByQueryConfig;
 import org.apache.druid.query.groupby.GroupByQueryRunnerTest;
@@ -59,7 +60,7 @@ import static org.junit.Assert.assertThat;
 @RunWith(Parameterized.class)
 public class CompressedBigDecimalAggregatorGroupByTest
 {
-  private final AggregationTestHelper<ResultRow> helper;
+  private final AggregationTestHelper helper;
 
   @Rule
   public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));

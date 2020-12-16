@@ -19,10 +19,13 @@
 
 package org.apache.druid.compressedbigdecimal;
 
+import com.google.common.collect.Iterables;
 import com.google.common.io.Resources;
+import org.apache.druid.common.config.NullHandling;
 import org.apache.druid.java.util.common.granularity.Granularities;
 import org.apache.druid.java.util.common.guava.Sequence;
 import org.apache.druid.query.Result;
+import org.apache.druid.query.aggregation.AggregationTestHelper;
 import org.apache.druid.query.timeseries.TimeseriesResultValue;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -36,11 +39,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 import static org.junit.Assert.assertEquals;
@@ -51,25 +52,29 @@ import static org.junit.Assert.assertThat;
  */
 public class CompressedBigDecimalAggregatorTimeseriesTest
 {
-  private final AggregationTestHelper<Result<TimeseriesResultValue>> helper;
+  private final AggregationTestHelper helper;
+
+  static {
+    NullHandling.initializeForTests();
+  }
 
   @Rule
   public final TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
 
   /**
-   * Constructor.
-   */
+     * Constructor.
+   * * */
   public CompressedBigDecimalAggregatorTimeseriesTest()
   {
     CompressedBigDecimalModule module = new CompressedBigDecimalModule();
     module.configure(null);
     helper = AggregationTestHelper.createTimeseriesQueryAggregationTestHelper(
-        module.getJacksonModules(), tempFolder);
+            module.getJacksonModules(), tempFolder);
   }
 
   /**
-   * Default setup of UTC timezone.
-   */
+     * Default setup of UTC timezone.
+  */
   @BeforeClass
   public static void setupClass()
   {
@@ -85,30 +90,29 @@ public class CompressedBigDecimalAggregatorTimeseriesTest
   @Test
   public void testIngestAndTimeseriesQuery() throws IOException, Exception
   {
-    Sequence<Result<TimeseriesResultValue>> seq = helper.createIndexAndRunQueryOnSegment(
-        this.getClass().getResourceAsStream("/" + "bd_test_data.csv"),
-        Resources.asCharSource(getClass().getResource(
-            "/" + "bd_test_data_parser.json"),
-            StandardCharsets.UTF_8
-        ).read(),
-        Resources.asCharSource(
-            this.getClass().getResource("/" + "bd_test_aggregators.json"),
-            StandardCharsets.UTF_8
-        ).read(),
-        0,
-        Granularities.NONE,
-        5,
-        Resources.asCharSource(
-            this.getClass().getResource("/" + "bd_test_timeseries_query.json"),
-            StandardCharsets.UTF_8
-        ).read()
-    );
+    Sequence seq = helper.createIndexAndRunQueryOnSegment(
+            this.getClass().getResourceAsStream("/" + "bd_test_data.csv"),
+            Resources.asCharSource(getClass().getResource(
+                    "/" + "bd_test_data_parser.json"),
+                    StandardCharsets.UTF_8
+            ).read(),
+                Resources.asCharSource(
+                        this.getClass().getResource("/" + "bd_test_aggregators.json"),
+                        StandardCharsets.UTF_8
+                ).read(),
+                0,
+                Granularities.NONE,
+                5,
+                Resources.asCharSource(
+                        this.getClass().getResource("/" + "bd_test_timeseries_query.json"),
+                        StandardCharsets.UTF_8
+                ).read()
+        );
 
-    List<Result<TimeseriesResultValue>> results = seq.toList();
-    assertThat(results, hasSize(1));
-    Result<TimeseriesResultValue> row = results.get(0);
-    Map<String, Object> event = row.getValue().getBaseObject();
-    assertEquals(new DateTime("2017-01-01T00:00:00Z", DateTimeZone.forTimeZone(TimeZone.getTimeZone("UTC"))), row.getTimestamp());
+    TimeseriesResultValue result = ((Result<TimeseriesResultValue>) Iterables.getOnlyElement(seq.toList())).getValue();
+    Map<String, Object> event = result.getBaseObject();
+    assertEquals(new DateTime("2017-01-01T00:00:00Z", DateTimeZone.forTimeZone(TimeZone.getTimeZone("UTC"))),
+            ((Result<TimeseriesResultValue>) Iterables.getOnlyElement(seq.toList())).getTimestamp());
     assertThat(event, aMapWithSize(1));
     assertThat(event, hasEntry("revenue", new BigDecimal("15000000010.000000005")));
   }
@@ -123,41 +127,41 @@ public class CompressedBigDecimalAggregatorTimeseriesTest
   {
     File segmentDir1 = tempFolder.newFolder();
     helper.createIndex(
-        this.getClass().getResourceAsStream("/" + "bd_test_zero_data.csv"),
-        Resources.asCharSource(this.getClass().getResource("/" + "bd_test_data_parser.json"),
-            StandardCharsets.UTF_8).read(),
-        Resources.asCharSource(this.getClass().getResource("/" + "bd_test_aggregators.json"),
-            StandardCharsets.UTF_8).read(),
-        segmentDir1,
-        0,
-        Granularities.NONE,
-        5);
+            new File(this.getClass().getResource("/" + "bd_test_data.csv").getFile()),
+            Resources.asCharSource(this.getClass().getResource("/" + "bd_test_data_parser.json"),
+                    StandardCharsets.UTF_8).read(),
+            Resources.asCharSource(this.getClass().getResource("/" + "bd_test_aggregators.json"),
+                    StandardCharsets.UTF_8).read(),
+            segmentDir1,
+            0,
+            Granularities.NONE,
+            5);
     File segmentDir2 = tempFolder.newFolder();
     helper.createIndex(
-        getClass().getResourceAsStream("/" + "bd_test_data.csv"),
-        Resources.asCharSource(this.getClass().getResource("/" + "bd_test_data_parser.json"),
-            StandardCharsets.UTF_8).read(),
-        Resources.asCharSource(this.getClass().getResource("/" + "bd_test_aggregators.json"),
-            StandardCharsets.UTF_8).read(),
-        segmentDir2,
-        0,
-        Granularities.NONE,
-        5);
+            new File(this.getClass().getResource("/" + "bd_test_zero_data.csv").getFile()),
+            Resources.asCharSource(this.getClass().getResource("/" + "bd_test_data_parser.json"),
+                    StandardCharsets.UTF_8).read(),
+            Resources.asCharSource(this.getClass().getResource("/" + "bd_test_aggregators.json"),
+                    StandardCharsets.UTF_8).read(),
+            segmentDir2,
+            0,
+            Granularities.NONE,
+            5);
 
-    Sequence<Result<TimeseriesResultValue>> seq = helper.runQueryOnSegments(
-        Arrays.asList(segmentDir1, segmentDir2),
-        Resources.asCharSource(
-            this.getClass().getResource("/" + "bd_test_timeseries_query.json"),
-            StandardCharsets.UTF_8
-        ).read());
+    Sequence seq = helper.runQueryOnSegments(
+            Arrays.asList(segmentDir1, segmentDir2),
+            Resources.asCharSource(
+                    this.getClass().getResource("/" + "bd_test_timeseries_query.json"),
+                    StandardCharsets.UTF_8
+            ).read());
 
-    List<Result<TimeseriesResultValue>> results = seq.toList();
-    assertThat(results, hasSize(1));
-    Result<TimeseriesResultValue> row = results.get(0);
-    Map<String, Object> event = row.getValue().getBaseObject();
-    assertEquals(new DateTime("2017-01-01T00:00:00Z", DateTimeZone.forTimeZone(TimeZone.getTimeZone("UTC"))), row.getTimestamp());
+    TimeseriesResultValue result = ((Result<TimeseriesResultValue>) Iterables.getOnlyElement(seq.toList())).getValue();
+    Map<String, Object> event = result.getBaseObject();
+    assertEquals(new DateTime("2017-01-01T00:00:00Z", DateTimeZone.forTimeZone(TimeZone.getTimeZone("UTC"))),
+            ((Result<TimeseriesResultValue>) Iterables.getOnlyElement(seq.toList())).getTimestamp());
     assertThat(event, aMapWithSize(1));
     assertThat(event, hasEntry("revenue", new BigDecimal("15000000010.000000005")));
 
   }
 }
+

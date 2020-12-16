@@ -51,6 +51,8 @@ public class ArrayCompressedBigDecimal extends CompressedBigDecimal<ArrayCompres
 
   /**
    * Construct an CompressedBigDecimal from an equivalent {@link BigDecimal}.
+   * The passed value's unscaled number is converted into byte array and then it
+   * compresses the unscaled number to array
    *
    * @param initialVal The BigDecimal value.
    */

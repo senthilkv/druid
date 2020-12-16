@@ -26,13 +26,13 @@ import org.apache.druid.query.aggregation.AggregateCombiner;
 import org.apache.druid.query.aggregation.Aggregator;
 import org.apache.druid.query.aggregation.AggregatorFactory;
 import org.apache.druid.query.aggregation.BufferAggregator;
-import org.apache.druid.query.aggregation.NoopAggregator;
-import org.apache.druid.query.aggregation.NoopBufferAggregator;
 import org.apache.druid.query.aggregation.NullableNumericAggregatorFactory;
 import org.apache.druid.segment.ColumnSelectorFactory;
 import org.apache.druid.segment.ColumnValueSelector;
 import org.apache.druid.segment.column.ValueType;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -97,21 +97,15 @@ public class CompressedBigDecimalAggregatorFactory
 
   @Override
   protected Aggregator factorize(ColumnSelectorFactory metricFactory,
-                                 ColumnValueSelector<CompressedBigDecimal<?>> selector)
+                                 @Nonnull ColumnValueSelector<CompressedBigDecimal<?>> selector)
   {
-    if (selector == null) {
-      return NoopAggregator.instance();
-    }
     return new CompressedBigDecimalAggregator(size, scale, selector);
   }
 
   @Override
   protected BufferAggregator factorizeBuffered(ColumnSelectorFactory metricFactory,
-                                               ColumnValueSelector<CompressedBigDecimal<?>> selector)
+                                               @Nonnull ColumnValueSelector<CompressedBigDecimal<?>> selector)
   {
-    if (selector == null) {
-      return NoopBufferAggregator.instance();
-    }
     return new CompressedBigDecimalBufferAggregator(size, scale, selector);
   }
 
@@ -127,6 +121,7 @@ public class CompressedBigDecimalAggregatorFactory
   /* (non-Javadoc)
    * @see org.apache.druid.query.aggregation.AggregatorFactory#combine(java.lang.Object, java.lang.Object)
    */
+  @Nullable
   @Override
   public Object combine(Object lhs, Object rhs)
   {
@@ -187,6 +182,7 @@ public class CompressedBigDecimalAggregatorFactory
   /* (non-Javadoc)
    * @see org.apache.druid.query.aggregation.AggregatorFactory#deserialize(java.lang.Object)
    */
+  @Nullable
   @Override
   public Object deserialize(Object object)
   {
