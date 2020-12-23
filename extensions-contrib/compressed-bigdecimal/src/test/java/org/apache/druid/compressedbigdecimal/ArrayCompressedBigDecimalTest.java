@@ -23,7 +23,9 @@ import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 
+import static org.apache.druid.compressedbigdecimal.Utils.accumulate;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -43,6 +45,7 @@ public class ArrayCompressedBigDecimalTest
   {
     // Validate simple 0 case with longs.
     ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(0, 0);
+    d.reset();
     assertEquals(0, d.getScale());
     int[] array = d.getArray();
     assertEquals(2, array.length);
@@ -58,11 +61,16 @@ public class ArrayCompressedBigDecimalTest
   {
     // Validate positive number that doesn't flow into the next int
     ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(Integer.MAX_VALUE, 9);
+    ArrayCompressedBigDecimal dl = d;
     assertEquals(9, d.getScale());
     int[] array = d.getArray();
     assertEquals(2, array.length);
     assertEquals(Integer.MAX_VALUE, array[0]);
     assertEquals(0, array[1]);
+    assertEquals(0, d.compareTo(new ArrayCompressedBigDecimal(Integer.MAX_VALUE, 9)));
+    assertEquals(0, d.compareTo(dl));
+
+
   }
 
   /**
@@ -78,6 +86,10 @@ public class ArrayCompressedBigDecimalTest
     assertEquals(2, array.length);
     assertEquals(Integer.MIN_VALUE, array[0]);
     assertEquals(-1, array[1]);
+    assertEquals(-21475, d.intValue());
+    assertEquals(-21475, d.longValue());
+    assertEquals(-21475, d.shortValue());
+
   }
 
   /**
@@ -93,6 +105,8 @@ public class ArrayCompressedBigDecimalTest
     int[] array = d.getArray();
     assertEquals(1, array.length);
     assertEquals(0, array[0]);
+    assertEquals("0", d.toString());
+    assertEquals(0, d.signum());
   }
 
   /**
@@ -344,4 +358,109 @@ public class ArrayCompressedBigDecimalTest
     bd = ArrayCompressedBigDecimal.wrap(new int[] {1410065408, 2}, 9);
     assertEquals(new BigDecimal(10).setScale(9), bd.toBigDecimal());
   }
+
+  /**
+   * Test method for {@link ByteBufferCompressedBigDecimal()}.
+   */
+  @Test
+  public void testBigDecimalConstructorwithByteBuffer()
+  {
+    BigDecimal bd = new BigDecimal(new BigInteger(1, new byte[] {0x7f, -1, -1}));
+    ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(bd);
+    ByteBuffer buf = ByteBuffer.allocate(4);
+    CompressedBigDecimal cbd = new ByteBufferCompressedBigDecimal(buf, 0, d);
+    assertEquals(0, cbd.getScale());
+    assertEquals(8388607, cbd.intValue());
+    assertEquals(new Long(8388607L).doubleValue(), cbd.floatValue(), 0.001);
+    assertEquals(new Long(8388607L).doubleValue(), cbd.doubleValue(), 0.001);
+  }
+
+  /**
+   * Test method for {@link  ArrayCompressedBigDecimal#setArrayEntry
+   */
+  @Test
+  public void testSetArrayEntry()
+  {
+    BigDecimal bd = new BigDecimal(new BigInteger(1, new byte[] {0x7f, -1, -1}));
+    ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(bd);
+    d.setArrayEntry(0, 2);
+    assertEquals(2, d.intValue());
+  }
+
+  /**
+   * Test method for {@link  ByteBufferCompressedBigDecimal#copyToBuffer(ByteBuffer, int, int, CompressedBigDecimal)}
+   */
+  @Test
+  public void testCopyToBuffer()
+  {
+    ByteBuffer bb = ByteBuffer.wrap(new byte[] {0, 0, 0, 0, 0, 0, 0, 4});
+    ByteBufferCompressedBigDecimal bbdl = new ByteBufferCompressedBigDecimal(bb, 0, 1, 0);
+    bbdl.setArrayEntry(0, 2);
+    assertEquals(2, bbdl.intValue());
+  }
+
+  /**
+   * Test method for {@link Utils#accumulate(ByteBuffer, int, int, int, CompressedBigDecimal)}
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testUtilsAccumulateByteBuf()
+  {
+    BigDecimal bd = new BigDecimal(new BigInteger(1, new byte[] {0x7f, -1, -1}));
+    ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(bd);
+    ByteBuffer buf = ByteBuffer.allocate(4);
+    accumulate(buf, 0, 1, 2, new ArrayCompressedBigDecimal(new BigDecimal(Long.MAX_VALUE)));
+  }
+
+  /**
+   * Test method for {@link Utils#accumulate(CompressedBigDecimal, long, int)}
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void testUtilsAccumulateCbdWithExeception()
+  {
+    BigDecimal bd = new BigDecimal(new BigInteger("1"));
+    ArrayCompressedBigDecimal d = new ArrayCompressedBigDecimal(bd);
+    accumulate(d, 0L, 1);
+  }
+
+  /**
+   * Test method for {@link Utils#accumulate(CompressedBigDecimal, long, int)}
+   */
+  @Test
+  public void testUtilsAccumulateCbd()
+  {
+    ArrayCompressedBigDecimal bd = ArrayCompressedBigDecimal.allocate(2, 0);
+    ArrayCompressedBigDecimal add = ArrayCompressedBigDecimal.wrap(new int[] {0x00000001, 0}, 0);
+    bd.accumulate(add);
+    accumulate(bd, 1, 0);
+    assertEquals("2", bd.toString());
+    CompressedBigDecimal x = accumulate(bd, new BigDecimal("2"));
+    assertEquals(4, x.intValue());
+
+    CompressedBigDecimalObjectStrategy c1 = new CompressedBigDecimalObjectStrategy();
+    c1.compare(bd, add);
+  }
+
+  /**
+   * Test method for {@link CompressedBigDecimalObjectStrategy
+   */
+  @Test
+  public void testCompressedBigDecimalObjectStrategy()
+  {
+    ArrayCompressedBigDecimal bd = ArrayCompressedBigDecimal.allocate(2, 0);
+    ArrayCompressedBigDecimal acd = ArrayCompressedBigDecimal.wrap(new int[] {0x00000001, 0}, 0);
+    bd = acd;
+    CompressedBigDecimalObjectStrategy c1 = new CompressedBigDecimalObjectStrategy();
+
+    BigDecimal d = new BigDecimal(new BigInteger(1, new byte[] {0, 0, 1}));
+    ArrayCompressedBigDecimal ad = new ArrayCompressedBigDecimal(d);
+    ByteBuffer bb = ByteBuffer.wrap(new byte[] {0, 0, 0, 0, 0, 0, 0, 4});
+    CompressedBigDecimal cbl = c1.fromByteBuffer(bb, 8);
+    byte[] bf = c1.toBytes(bd);
+    ArrayCompressedBigDecimal cbd = new ArrayCompressedBigDecimal(new BigDecimal(new BigInteger(1, bf)));
+
+    assertEquals(67108864, cbl.intValue());
+    assertEquals(0, c1.compare(bd, acd));
+    assertEquals(0, cbd.intValue());
+  }
+
 }

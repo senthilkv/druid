@@ -295,7 +295,7 @@ public class CompressedBigDecimalAggregatorFactory
         ", type='" + getComplexTypeName() + '\'' +
         ", fieldName='" + getFieldName() + '\'' +
         ", requiredFields='" + requiredFields() + '\'' +
-        ", size='" + getScale() + '\'' +
+        ", size='" + getSize() + '\'' +
         ", scale='" + getScale() + '\'' +
         '}';
   }
